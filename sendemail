@@ -1,0 +1,17 @@
+#!/bin/sh
+. ./config.sh
+
+TMPFILE=$(mktemp)
+TMPFILE2=$(mktemp)
+
+trap 'rm -f $TMPFILE $TMPFILE2' EXIT
+
+./job.py -w $OFFSET > $TMPFILE
+
+if [ "$?" != "0" ]; then
+  (cat $TMPFILE; echo; echo "$URL") | perl -p -e "s#\n#<br/>#" >> $TMPFILE2
+  (echo "<pre>"; ./job.py $OFFSET) >> $TMPFILE2
+
+  (echo "To: $MAILTO"; echo "From: $MAILFROM"; echo "Subject: Bandwidth warning"; echo "Content-type: text/html"; echo; echo "<html><body>"; cat $TMPFILE2; echo "</body></html>") | /usr/sbin/sendmail -t
+  exit 0
+fi
