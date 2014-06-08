@@ -1,0 +1,6 @@
+syntax: glob
+*.pyc
+config.py
+config.sh
+output
+exampledata.py

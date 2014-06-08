@@ -1,0 +1,4 @@
+exporter ALL=(root) NOPASSWD: /usr/sbin/xentop -nxvbfd 60
+exporter ALL=(root) NOPASSWD: /usr/sbin/xentop -nxvbfd 1
+exporter ALL=(root) NOPASSWD: /usr/sbin/xm list
+
