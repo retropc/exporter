@@ -1,0 +1,8 @@
+#!/bin/sh
+export MAILTO="person@example.com"
+export MAILFROM="Monitor <monitor@example.com>"
+export URL="http://stats.example.com/stats/"
+export PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games
+export OFFSET=86400
+export MBS=10240
+#export OFFSET=0

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -ue
 . ./config.sh
 
 TMPFILE=$(mktemp)
@@ -6,7 +6,7 @@ TMPFILE2=$(mktemp)
 
 trap 'rm -f $TMPFILE $TMPFILE2' EXIT
 
-./job.py -w $OFFSET > $TMPFILE
+./job.py -w $MBS $OFFSET > $TMPFILE
 
 if [ "$?" != "0" ]; then
   (cat $TMPFILE; echo; echo "$URL") | perl -p -e "s#\n#<br/>#" >> $TMPFILE2
