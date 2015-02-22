@@ -6,9 +6,12 @@ TMPFILE2=$(mktemp)
 
 trap 'rm -f $TMPFILE $TMPFILE2' EXIT
 
+set +e
 ./job.py -w $MBS $OFFSET > $TMPFILE
+RESULT=$?
+set -e
 
-if [ "$?" != "0" ]; then
+if [ "$RESULT" != "0" ]; then
   (cat $TMPFILE; echo; echo "$URL") | perl -p -e "s#\n#<br/>#" >> $TMPFILE2
   (echo "<pre>"; ./job.py $OFFSET) >> $TMPFILE2
 
