@@ -54,36 +54,52 @@ def handle_data(t, xentop_raw, interfaces_raw, domains_raw):
 
 def main():
   h = hmac.HMAC(key=KEY, digestmod=hashlib.sha1)
-  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   s.bind(TARGET)
+  s.listen(5)
 
   while True:
-    packet, source = s.recvfrom(65535)
-    if not packet:
-      continue
+    s2, source = s.accept()
     if source[0] != SOURCE:
+      s2.close()
       continue
 
-    hdata = packet[20:]
-    h2 = h.copy()
-    h2.update(hdata)
-    if packet[:20] != h2.digest():
-      continue
+    while True:
+      packet_len = s2.recv(4)
+      if len(packet_len) != 4:
+        break
 
-    jdata = hdata[8:]
+      packet_len = struct.unpack("i", packet_len)[0]
 
-    t, interfaces_len, domains_len = struct.unpack("!LHH", jdata[:8])
-    interfaces_raw = jdata[8:8+interfaces_len]
-    domains_raw = jdata[8+interfaces_len:8+interfaces_len+domains_len]
-    xentop_raw = jdata[8+interfaces_len+domains_len:]
-    try:
-      handle_data(t, xentop_raw, interfaces_raw, domains_raw)
-    except:
-      with open("dumped-broken-data", "wb") as f:
-        f.write(jdata)
+      packet = ""
+      while len(packet) < packet_len:
+        d = s2.recv(packet_len - len(packet))
+        if not d:
+          break
+        packet+=d
+
+      hdata = packet[20:]
+      h2 = h.copy()
+      h2.update(hdata)
+      if packet[:20] != h2.digest():
+        break
+
+      jdata = hdata[8:]
+
+      t, interfaces_len, domains_len = struct.unpack("!LHH", jdata[:8])
+      interfaces_raw = jdata[8:8+interfaces_len]
+      domains_raw = jdata[8+interfaces_len:8+interfaces_len+domains_len]
+      xentop_raw = jdata[8+interfaces_len+domains_len:]
+      try:
+        handle_data(t, xentop_raw, interfaces_raw, domains_raw)
+      except:
+        with open("dumped-broken-data", "wb") as f:
+          f.write(jdata)
      
-      print >>sys.stderr, "Exception processing last message, contents: dumped to dumped-broken-data"
-      raise
+        print >>sys.stderr, "Exception processing last message, contents: dumped to dumped-broken-data"
+        raise
+
+    s2.close()
 
 if __name__ == "__main__":
   main()

@@ -1,0 +1,4 @@
+#!/bin/sh
+xm list
+/usr/sbin/xentop -nxvbfi 1
+

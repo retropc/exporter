@@ -177,6 +177,15 @@ def parse_domains(lines):
 __all__ = "parse_xentop", "parse_domains"
 
 if __name__ == "__main__":
-  from exampledata import data
   import pprint
-  pprint.pprint(parse(['', data]))
+
+  data = [x for x in open("exampledata", "r").read().split("\n") if x]
+
+  for i, x in enumerate(data):
+    if x == HEADER:
+      domains, full_data = data[:i], data[i:]
+      break
+
+  print domains, full_data
+  vifmap = parse_domains(domains)
+  pprint.pprint(parse_xentop(full_data, vifmap))
