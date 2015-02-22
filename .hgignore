@@ -3,4 +3,4 @@ syntax: glob
 config.py
 config.sh
 output
-exampledata.py
+exampledata

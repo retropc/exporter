@@ -11,6 +11,7 @@ import hashlib
 import traceback
 import select
 import sys
+import prctl
 from config import KEY, TARGET
 
 HEADER = "      NAME  STATE   CPU(sec) CPU(%)     MEM(k) MEM(%)  MAXMEM(k) MAXMEM(%) VCPUS NETS NETTX(k) NETRX(k) VBDS   VBD_OO   VBD_RD   VBD_WR  VBD_RSECT  VBD_WSECT SSID"
@@ -18,7 +19,7 @@ HEADER = "      NAME  STATE   CPU(sec) CPU(%)     MEM(k) MEM(%)  MAXMEM(k) MAXME
 
 DEVNULL = os.open(os.devnull, os.O_RDWR)
 
-def run(s, signer):
+def run(sender, signer):
   buf = ""
 
   p = subprocess.Popen(["/usr/bin/sudo", "/usr/sbin/xentop", "-nxvbfd", "60"], shell=False, stdin=DEVNULL, stdout=subprocess.PIPE, stderr=DEVNULL, close_fds=True)
@@ -53,20 +54,14 @@ def run(s, signer):
           existing_interfaces = interfaces
           domains = get_domains()
 
-        try:
-          s.send(signer.sign(t, segment, interfaces, domains))
-        except socket.error:
-          pass
-        t = t2
+        sender.send(signer.sign(t, segment, interfaces, domains))
 
+        t = t2
+  finally:
     p.stdout.close()
-    print >>sys.stderr, "waiting for termination..."
+
+    p.kill()
     p.wait()
-    print >>sys.stderr, "terminated"
-  except:
-    traceback.print_exc()
-    if p.returncode is None:
-      os.killpg(os.getpgid(os.getpid()), signal.SIGKILL)
 
 def get_domains():
   print >>sys.stderr, "domains changed, running xm list..."
@@ -124,18 +119,57 @@ class PacketGenerator(object):
 
     h2 = self.h.copy()
     h2.update(hdata)
-    return "%s%s" % (h2.digest(), hdata)
+    packet = "%s%s" % (h2.digest(), hdata)
+    return struct.pack("i", len(packet)) + packet
+
+class UDPSender(object):
+  def __init__(self):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(TARGET)
+
+  def send(self, s):
+    try:
+      self.send(s)
+    except socket.error:
+      traceback.print_exc()
+
+class TCPSender(object):
+  def __init__(self):
+    self.s = None
+
+  def connect(self):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+      s.connect(TARGET)
+      self.s = s
+    except:
+      s.close()
+      raise
+
+  def send(self, s):
+    try:
+      if self.s is None:
+        self.connect()
+
+      self.s.send(s)
+    except socket.error:
+      self.s = None
+      traceback.print_exc()
 
 def main():
+  prctl.deathsig(signal.SIGTERM)
   signal.signal(signal.SIGPIPE, signal.SIG_IGN)
 
-  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  s.connect(TARGET)
+  sender = TCPSender()
   signer = PacketGenerator()
 
   while True:
     started = time.time()
-    run(s, signer)
+    try:
+      run(sender, signer)
+    except:
+      traceback.print_exc()
+
     delta = time.time() - started
     if delta < 10:
       print >>sys.stderr, "uh oh, crashing lots... sleeping"
