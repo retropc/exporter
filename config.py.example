@@ -1,0 +1,4 @@
+SOURCE = "123.45.67.89"
+TARGET = "123.45.67.90", 5555
+KEY = 'thesearesomerandombytes"
+PREFIX = "stats"

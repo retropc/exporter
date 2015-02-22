@@ -88,7 +88,7 @@ def main(offset, warning):
 
   if warning:
     large_users = {}
-    LIMIT = 1024 * 1024 * 1024 * 10
+    LIMIT = 1024 * 1024 * warning
     for machine, v in by_day.items():
       rx, tx, _, _, _, _, _ = v.values()[0]
       if rx > LIMIT or tx > LIMIT:
@@ -110,7 +110,7 @@ if __name__ == "__main__":
 
   warning = False
   if args and args[0] == "-w":
-    warning = True
     args.pop(0)
+    warning = int(args.pop(0))
 
   sys.exit(main(int(args[0]) if args else 0, warning=warning))
